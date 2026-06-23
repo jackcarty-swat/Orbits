@@ -96,8 +96,8 @@ def MakeInitialMaxwellian(N, X, q, T_perp, T_para, m, t_0=0, X_range=[0,0,0]):
         Tuple with 4 columns, N rows, where each row represents a particle. The first column gives the particle's
         position, the second gives its velocity, the third its charge-mass ratio, and the fourth gives time.
     """
-    scaleParamPerp = 4*10**(-10) * np.sqrt(T_perp/m)
-    scaleParamPara = 4*10**(-10) * np.sqrt(T_para/m)
+    scaleParamPerp = np.sqrt(T_perp/m)
+    scaleParamPara = np.sqrt(T_para/m)
     v_perp = maxwell.rvs(loc=0, scale=scaleParamPerp, size=N)
     v_para = maxwell.rvs(loc=0, scale=scaleParamPara, size=N)
     V = np.array([v_perp, np.zeros(N), v_para]).T
@@ -135,7 +135,7 @@ def InitialFromSource(N, X, V, q, m, t, T, xRange=[0,0,0]):
             in cartesian coordinates. Column 7 gives the charge/mass ratio, column 8 gives time, and column 9
             is a boolean representing if the particle is confined between the magnetic mirrors.
     """
-    scaleParam = 4*10**(-10) * np.sqrt(T/m)
+    scaleParam = np.sqrt(T/m)
     vMag = maxwell.rvs(loc=0, scale=scaleParam, size=N)
     
     x = uniform.rvs(loc=(X[0] - xRange[0]/2), scale=xRange[0], size=N)
@@ -170,15 +170,15 @@ def InitialFromBody(N, xRange, q, m, t, T, T_perp=-1):
             is a boolean representing if the particle is confined between the magnetic mirrors.
     """
     if T_perp == -1:
-        scaleParam = 4*10**(-10) * np.sqrt(T/m)
+        scaleParam = np.sqrt(T/m)
         vMag = maxwell.rvs(loc=0, scale=scaleParam, size=N)
         V = uniform_direction.rvs(dim=3, size=N)
         vX = V[:, 0] * vMag
         vY = V[:, 1] * vMag
         vZ = V[:, 2] * vMag
     else:
-        scaleParamPerp = 4*10**(-10) * np.sqrt(T_perp/m)
-        scaleParamPara = 4*10**(-10) * np.sqrt(T/m)
+        scaleParamPerp = np.sqrt(T_perp/m)
+        scaleParamPara = np.sqrt(T/m)
         vMagPerp = maxwell.rvs(loc=0, scale=scaleParamPerp, size=N)
         V = uniform_direction.rvs(dim=2, size=N)
         vX = V[:, 0] * vMagPerp
