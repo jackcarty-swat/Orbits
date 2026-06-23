@@ -65,6 +65,10 @@ def ScalarAxisymmetricMagneticField(x, y, z, B_0):
     B_x, B_y, B_z = CylindricalToCartesian(B_r, theta, B_z)
     return np.array((B_x, B_y, B_z))
 
+@njit
+def WHAMField(x, y, z, file):
+    pass
+
 def UniformField(x, y, z, B_0):
     """
     Returns a magnetic field of strength B_0 in the z-direction.
@@ -90,3 +94,24 @@ def UniformField(x, y, z, B_0):
     By = np.zeros_like(y)
     Bz = np.full_like(z, B_0)
     return np.stack((Bx, By, Bz), axis=-1)
+
+def WireField(x):
+    X,Y,Z=x
+    r2 = X**2 + Y**2
+    eps = 1e-6
+    r2=max(r2, eps)
+    Bx=-Y/ r2
+    By = X/ r2
+    Bz= 0
+    return np.array([Bx,By,Bz])
+
+
+# Defining dipole magnetic field
+def DipoleField(x, y, z, r_star):
+   mu = r_star**3 # dipole moment in normalized units
+   r = np.sqrt(x**2 + y**2 + z**2)
+   factor = mu/(r**5)
+   Bx = factor * 3.0 * x * z
+   By= factor * 3.0 * y * z
+   Bz= factor * (2.0*z**2 - x**2 - y**2)
+   return np.stack((Bx, By, Bz), axis=-1)

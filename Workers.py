@@ -38,7 +38,7 @@ def BorisPush(state, B, dt):
     
 
 
-def BorisIterator(N, dt, df, B_func, keepSteps=False):
+def BorisIterator(N, dt, df, B_func, B_0, keepSteps=False):
     if keepSteps:
         steps = []
     for i, p in df.iterrows():
@@ -48,7 +48,7 @@ def BorisIterator(N, dt, df, B_func, keepSteps=False):
         c = 0
         while c < N:
             c += 1
-            B = B_func(*state[:3])
+            B = B_func(*state[:3], B_0)
             state = ScalarBorisPush(state, B, dt)
             if keepSteps:
                 temp.append(state)
@@ -62,19 +62,19 @@ def BorisIterator(N, dt, df, B_func, keepSteps=False):
         return df
 
 
-def BetterBorisIterator(N, dt, df, B_func, keepSteps=False):
+def BetterBorisIterator(N, dt, df, B_func, B_0, nkeep=0):
     state = np.array(df)
-    if keepSteps:
-        steps = [state]
+    if nkeep != 0:
+        steps = [state[:nkeep]]
     c = 0
     while c < N:
         c += 1
-        B = B_func(*state[:,:3].T)
+        B = B_func(*state[:,:3].T, B_0)
         state = BorisPush(state, B, dt)
-        if keepSteps:
-            steps.append(state)
+        if nkeep != 0:
+            steps.append(state[:nkeep])
     df = pd.DataFrame(state, columns=['x', 'y', 'z', 'vX', 'vY', 'vZ', 'qom', 't'])
-    if keepSteps:
+    if nkeep != 0:
         return df, np.array(steps)
     else:
         return df

@@ -77,6 +77,16 @@ def UniformField(x, y, z):
     Bz = np.full_like(z, 1)
     return np.stack((Bx, By, Bz), axis=-1)
 
+# Defining dipole magnetic field
+def DipoleField(x, y, z, r_star):
+   mu = r_star**3 # dipole moment in normalized units
+   r = np.sqrt(x**2 + y**2 + z**2)
+   factor = mu/(r**5)
+   Bx = factor * 3.0 * x * z
+   By= factor * 3.0 * y * z
+   Bz= factor * (2.0*z**2 - x**2 - y**2)
+   return np.stack((Bx, By, Bz), axis=-1)
+
 
 def MakeInitialMaxwellian(N, X, q, T_perp, T_para, m, t_0=0, X_range=[0,0,0]):
     """
@@ -395,11 +405,11 @@ print("New Boris:")
 
 #initial = pd.DataFrame(np.array([[0.1, -0.1], [0.1, -0.1], [0, 0], [-419000, 419000], [0, 0], [10000000, 10000000], [-1.76*10**11, -1.76*10**11], [0, 0]]).T, columns=['x', 'y', 'z', 'vX', 'vY', 'vZ', 'qom', 't'])
 #initial = InitialFromSource(50, [0,0,0], [0,0,1], 1.6*10**(-19), 9.1*10**(-31), 0, 1)
-initial = pd.DataFrame(np.array([[0], [0], [0], [1], [0], [1], [1], [0]]).T, columns=['x', 'y', 'z', 'vX', 'vY', 'vZ', 'qom', 't'])
+initial = pd.DataFrame(np.array([[0], [1], [0], [1], [0], [1], [1], [0]]).T, columns=['x', 'y', 'z', 'vX', 'vY', 'vZ', 'qom', 't'])
 
 #initial = InitialFromBody(5000, [[-0.5, 0.5], [-0.5, 0.5], [-0.5, 0.5]], 1.6*10**(-19), 1.67*10**(-27), 0, 5000)
 
-output, steps = BetterBorisIterator(2000, 0.1, initial, UniformField, True)
+output, steps = BetterBorisIterator(2000, 0.1, initial, DipoleField, 1, True)
 
 VisualizeTrajectories(steps, 1)
 

@@ -40,7 +40,7 @@ def VisualizeTrajectories(steps, N, cutoff=9787):
     for i in range(N):
         if np.abs(steps[:,i,2][-1]) <= cutoff:
             try:
-                plt.plot(steps[:,i,7], steps[:,i,1])
+                plt.plot(steps[:,i,7], steps[:,i,2])
             except:
                 print("Failed to display particle ", i)
     plt.title("Z vs Time")
