@@ -7,7 +7,6 @@ from scipy.stats import uniform
 from scipy.stats import uniform_direction
 from scipy.integrate import RK45
 from numba import njit
-import time
 
 # Defining parameters of the magnetic field
 B_0 = 6.5
@@ -29,13 +28,13 @@ def CylindricalToCartesian(r, theta, z):
 @njit
 def RadialMagneticField(R, theta, Z):
     # Calculates the radial magnetic field at a given position in cylindrical coordinates
-    B = R*B_0/(np.pi*gamma**3) * ((Z-Z_m)/((1+((Z-Z_m)/gamma)**2)**2) + (Z+Z_m)/((1+((Z+Z_m)/gamma)**2)**2))
+    B = R*0.0001022*B_0/(np.pi*gamma**3) * ((Z*0.0001022-Z_m)/((1+((Z*0.0001022-Z_m)/gamma)**2)**2) + (Z*0.0001022+Z_m)/((1+((Z*0.0001022+Z_m)/gamma)**2)**2))
     return B
 
 @njit
 def AxialMagneticField(R, theta, Z):
     # Calculates the axial magnetic field at a given position in cylindrical coordinates
-    B = B_0/(np.pi*gamma) * (1/(1+((Z-Z_m)/gamma)**2) + 1/(1+((Z+Z_m)/gamma)**2))
+    B = B_0/(np.pi*gamma) * (1/(1+((Z*0.0001022-Z_m)/gamma)**2) + 1/(1+((Z*0.0001022+Z_m)/gamma)**2))
     return B
 
 @njit
@@ -71,6 +70,12 @@ def ScalarCartesianMagneticField(x, y, z):
     B_z = AxialMagneticField(r, theta, z)
     B_x, B_y, B_z = CylindricalToCartesian(B_r, theta, B_z)
     return np.array((B_x, B_y, B_z))
+
+def UniformField(x, y, z):
+    Bx = np.zeros_like(x)
+    By = np.zeros_like(y)
+    Bz = np.full_like(z, 1)
+    return np.stack((Bx, By, Bz), axis=-1)
 
 
 def MakeInitialMaxwellian(N, X, q, T_perp, T_para, m, t_0=0, X_range=[0,0,0]):
@@ -260,7 +265,7 @@ def BetterBorisIterator(N, dt, df, B_func, keepSteps=False):
     c = 0
     while c < N:
         c += 1
-        B = CartesianMagneticField(*state[:,:3].T)
+        B = B_func(*state[:,:3].T)
         state = BorisPush(state, B, dt)
         if keepSteps:
             steps.append(state)
@@ -329,7 +334,7 @@ def VisualizeTrajectories(steps, N):
     fig = plt.figure(figsize=(10,8))
     ax = fig.add_subplot(projection='3d')
     for i in range(N):
-        if np.abs(steps[:,i,2,][-1]) <= Z_m:
+        if np.abs(steps[:,i,2,][-1])*0.0001022 <= Z_m:
             try:
                 ax.plot(*steps[:,i,:3].T, label=f'Particle {i}', linewidth=1)
             except:
@@ -341,16 +346,16 @@ def VisualizeTrajectories(steps, N):
     plt.savefig("Particle_trajectories.png")
     plt.show()
     
-#    for i in range(N):
-#        if np.abs(steps[:,i,2,][-1]) <= Z_m:
-#            try:
-#                plt.plot(steps[:,i,7], steps[:,i,2])
-#            except:
-#                print("Failed to display particle ", i)
-#    plt.title("Z vs Time")
-#    plt.xlabel("Time")
-#    plt.ylabel("Z position")
-#    plt.show()
+    for i in range(N):
+        if np.abs(steps[:,i,2][-1])*0.0001022 <= Z_m:
+            try:
+                plt.plot(steps[:,i,7], steps[:,i,1])
+            except:
+                print("Failed to display particle ", i)
+    plt.title("Z vs Time")
+    plt.xlabel("Time")
+    plt.ylabel("Z position")
+    plt.show()
     
 def GetStatistics(data):
     numLost = len(data[np.abs(data['z'])>Z_m])
@@ -390,26 +395,14 @@ print("New Boris:")
 
 #initial = pd.DataFrame(np.array([[0.1, -0.1], [0.1, -0.1], [0, 0], [-419000, 419000], [0, 0], [10000000, 10000000], [-1.76*10**11, -1.76*10**11], [0, 0]]).T, columns=['x', 'y', 'z', 'vX', 'vY', 'vZ', 'qom', 't'])
 #initial = InitialFromSource(50, [0,0,0], [0,0,1], 1.6*10**(-19), 9.1*10**(-31), 0, 1)
-t1 = time.perf_counter()
-initial = InitialFromBody(5000, [[-0.5, 0.5], [-0.5, 0.5], [-0.5, 0.5]], 1.6*10**(-19), 1.67*10**(-27), 0, 5000)
-t2 = time.perf_counter()
-output = BetterBorisIterator(2000000, 10**(-11), initial, CartesianMagneticField, False)
-t3 = time.perf_counter()
-#VisualizeTrajectories(steps, 10)
-t4 = time.perf_counter()
-pLost = GetStatistics(output)
-t5 = time.perf_counter()
+initial = pd.DataFrame(np.array([[0], [0], [0], [1], [0], [1], [1], [0]]).T, columns=['x', 'y', 'z', 'vX', 'vY', 'vZ', 'qom', 't'])
 
+#initial = InitialFromBody(5000, [[-0.5, 0.5], [-0.5, 0.5], [-0.5, 0.5]], 1.6*10**(-19), 1.67*10**(-27), 0, 5000)
 
-t1 = t2 - t1
-t2 = t3 - t2
-t3 = t4 - t3
-t4 = t5 - t4
+output, steps = BetterBorisIterator(2000, 0.1, initial, UniformField, True)
 
-text = f"Time 1: {t1}. Time 2: {t2}. Time 3: {t3}. Time 4: {t4}\nPercentage lost: {pLost}"
+VisualizeTrajectories(steps, 1)
 
-with open("output.txt", "w", encoding="utf-8") as file:
-    file.write(text)
 
 def VisualizeMagneticField(bFunc, cuttingAxis, cutval, ax1Range, ax2Range):
     n1 = int(100*(ax1Range[1] - ax1Range[0])+1)
