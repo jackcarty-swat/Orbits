@@ -1,5 +1,6 @@
 import numpy as np
 from numba import njit
+from scipy.spatial import cKDTree
 
 B_0 = 6.5
 Z_m = 1
@@ -65,9 +66,20 @@ def ScalarAxisymmetricMagneticField(x, y, z, B_0):
     B_x, B_y, B_z = CylindricalToCartesian(B_r, theta, B_z)
     return np.array((B_x, B_y, B_z))
 
-@njit
-def WHAMField(x, y, z, file):
-    pass
+def FileInitializer(fnamer, fnamez):
+    Br = np.loadtxt(fnamer, skiprows=8)
+    Bz = np.loadtxt(fnamez, skiprows=8)
+    tree = cKDTree(Br[:,:2])
+    return tree, Br, Bz
+    
+
+def FieldFromFile(x, y, z, tree, Br, Bz):
+    r, theta, z = CartesianToCylindrical(x, y, z)
+    dist, idx = tree.query(np.array([r*0.0001022, z*0.0001022]).T, 10)
+    BR = np.sum(Br[idx, 2] * dist, axis=1) / np.sum(dist)
+    BZ = np.sum(Bz[idx, 2] * dist, axis=1) / np.sum(dist)
+    B_x, B_y, B_z = CylindricalToCartesian(BR, theta, BZ)
+    return np.stack((B_x, B_y, B_z), axis=-1)
 
 def UniformField(x, y, z, B_0):
     """

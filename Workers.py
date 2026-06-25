@@ -35,10 +35,9 @@ def BorisPush(state, B, dt):
     x_new = x + v_new * dt
 
     return np.column_stack((x_new, v_new, qm, state[:, 7] + dt))
-    
 
 
-def BorisIterator(N, dt, df, B_func, B_0, keepSteps=False):
+def BorisIterator(N, dt, df, B_func, B_0=1, keepSteps=False):
     if keepSteps:
         steps = []
     for i, p in df.iterrows():
@@ -62,14 +61,19 @@ def BorisIterator(N, dt, df, B_func, B_0, keepSteps=False):
         return df
 
 
-def BetterBorisIterator(N, dt, df, B_func, B_0, nkeep=0):
+def BetterBorisIterator(N, dt, df, B_func, B_0, nkeep=0, fieldFromFile=False, FileInit=None, fnameR="", fnameZ=""):
     state = np.array(df)
     if nkeep != 0:
         steps = [state[:nkeep]]
+    if fieldFromFile:
+        tree, Br, Bz = FileInit(fnameR, fnameZ)
     c = 0
     while c < N:
         c += 1
-        B = B_func(*state[:,:3].T, B_0)
+        if not fieldFromFile:
+            B = B_func(*state[:,:3].T, B_0)
+        else:
+            B = B_func(*state[:,:3].T, tree, Br, Bz)
         state = BorisPush(state, B, dt)
         if nkeep != 0:
             steps.append(state[:nkeep])

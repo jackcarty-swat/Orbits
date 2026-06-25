@@ -1,55 +1,19 @@
-import Initializers
-import Fields
-import Visualizers
-import Workers
+from Github.Orbits import Initializers
+from Github.Orbits import Fields
+from Github.Orbits import Visualizers
+from Github.Orbits import Workers
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
-initial = Initializers.InitialFromBody(1000, [[180,200],[180,200],[-10,10]], 1, 1, 0, 100)
+
+
+initial = Initializers.InitialFromBody(1, [[180,200],[180,200],[-10,10]], 1, 1, 0, 1)
+#initial = pd.DataFrame(np.array([[1000, 1000], [1000, 1000], [10, 10], [10, -10], [0, 0], [-1, -1], [1, 1], [0, 0]]).T, columns=['x', 'y', 'z', 'vX', 'vY', 'vZ', 'qom', 't'])
 print("Initialized")
-output, steps = Workers.BetterBorisIterator(2*3.14*1000, 0.1, initial, Fields.AxisymmetricMagneticField, 6.5, 10)
+fR = r"C:\Users\Student\Desktop\Particle Orbits\6kA_17500A\Field_WHAM_R_Br_6kA_17500A.txt"
+fZ = r"C:\Users\Student\Desktop\Particle Orbits\6kA_17500A\Field_WHAM_R_Bz_6kA_17500A.txt"
+output, steps = Workers.BetterBorisIterator(2*3.14*10, 1, initial, Fields.FieldFromFile, 6.5, 1, True, Fields.FileInitializer, fR, fZ)
 print("Computed")
-Visualizers.VisualizeTrajectories(steps, 10)
+Visualizers.VisualizeTrajectories(steps, 1)
 
-
-lost = output[np.abs(output['z']) > 9787]
-kept = output[np.abs(output['z']) <= 9787]
-
-def vstats(x, y, z):
-    magPerp = np.sqrt(x**2 + y**2)
-    return z / magPerp
-
-lratios = []
-for i in lost.iterrows():
-    lratios.append(np.abs(vstats(*i[1][:3])))
-    print(vstats(*i[1][:3]))
-
-kratios = []
-for i in kept.iterrows():
-    kratios.append(np.abs(vstats(*i[1][:3])))
-
-tratios = []
-for i in output.iterrows():
-    tratios.append(np.abs(vstats(*i[1][:3])))
-
-print("Velocity ratios:")
-print(np.average(lratios))
-print(np.average(kratios))
-print(np.average(tratios))
-print("Ratio lost:")
-print(len(lost)/len(output))
-
-def EnergyChecker(initial, final):
-    EInit = initial['vX']**2 + initial['vY']**2 + initial['vZ']**2
-    Efin = final['vX']**2 + final['vY']**2 + final['vZ']**2
-    
-    print(EInit.mean, Efin.mean)
-    
-#EnergyChecker(initial, output)
-
-plt.plot(steps[:,0,7], steps[:,0,3])
-plt.show()
-plt.plot(steps[:,0,7], steps[:,0,4])
-plt.show()
-plt.plot(steps[:,0,7], steps[:,0,5])
-plt.show()
